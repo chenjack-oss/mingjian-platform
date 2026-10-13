@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>明辨 · 审问之明辨之</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23185fa5'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#ffffff; --line:#ececee; --hover:#f5f6f7; --active:#ececee;
+    --text:#1f2328; --muted:#8a8f99; --brand:#185fa5; --brand-soft:#e6f1fb;
+    --ok:#0f6e56; --ok-soft:#e1f5ee; --warn:#854f0b; --warn-soft:#faeeda;
+    --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.65 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+       color:var(--text);background:var(--bg)}
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .app{display:flex;height:100vh;overflow:hidden}
+
+  /* ============ 侧栏 ============ */
+  .side{width:240px;flex:0 0 240px;border-right:1px solid var(--line);
+        display:flex;flex-direction:column;background:var(--bg);
+        transition:margin .18s ease}
+  .side.hide{margin-left:-240px}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 10px}
+  .logo{width:22px;height:22px;border-radius:6px;background:var(--brand);
+        display:flex;align-items:center;justify-content:center;flex:0 0 22px}
+  .logo svg{width:14px;height:14px;stroke:#fff}
+  .brand b{font-size:15px;font-weight:500}
+  .brand .fold{margin-left:auto;color:var(--muted);padding:4px;border-radius:6px}
+  .brand .fold:hover{background:var(--hover)}
+
+  nav{padding:4px 10px}
+  .nav{display:flex;align-items:center;gap:10px;width:100%;height:34px;
+       padding:0 10px;border-radius:8px;font-size:13.5px;color:var(--text);text-align:left}
+  .nav svg{width:16px;height:16px;stroke:var(--muted);flex:0 0 16px}
+  .nav:hover{background:var(--hover)}
+  .nav.on{background:var(--active);font-weight:500}
+  .nav.on svg{stroke:var(--text)}
+
+  .sect{padding:14px 20px 6px;color:var(--muted);font-size:12px}
+  .hist{flex:1;overflow:auto;padding:0 10px 8px}
+  .hist .empty{color:#c2c6cc;font-size:12.5px;text-align:center;padding:14px 0}
+  .hitem{display:flex;align-items:center;height:32px;padding:0 10px;border-radius:8px;
+         font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;
+         overflow:hidden;text-overflow:ellipsis}
+  .hitem:hover{background:var(--hover)}
+  .hitem.on{background:var(--active);font-weight:500}
+
+  .side-foot{border-top:1px solid var(--line);padding:8px 10px;display:flex;
+             flex-direction:column;gap:2px}
+  .footrow{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;
+           border-radius:8px;font-size:13px;color:var(--text);text-decoration:none}
+  .footrow svg{width:16px;height:16px;stroke:var(--muted)}
+  .footrow:hover{background:var(--hover)}
+  .footrow .sub{margin-left:auto;color:var(--muted);font-size:12px}
+
+  /* ============ 主区 ============ */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+  .unfold{position:absolute;top:12px;left:12px;z-index:5;color:var(--muted);
+          padding:6px;border-radius:8px}
+  .unfold:hover{background:var(--hover)}
+
+  .view{flex:1;display:none;flex-direction:column;min-height:0}
+  .view.on{display:flex}
+
+  /* hero 空态 */
+  .hero{flex:1;display:flex;flex-direction:column;align-items:center;
+        justify-content:center;padding:0 24px}
+  .hero h1{font-size:26px;font-weight:500;margin:0 0 28px;letter-spacing:.5px}
+  .hero h1 span{color:var(--brand)}
+
+  /* 输入卡片（hero 与对话态共用） */
+  .card{width:min(680px,100%);background:#fff;border:1px solid var(--line);
+        border-radius:16px;box-shadow:var(--shadow);padding:10px 12px 8px}
+  .card .rowtop{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
+  .chip{display:flex;align-items:center;gap:5px;height:26px;padding:0 9px;
+        border-radius:7px;font-size:12.5px;color:var(--muted)}
+  .chip svg{width:13px;height:13px;stroke:var(--muted)}
+  .chip:hover{background:var(--hover);color:var(--text)}
+  select.chipsel{border:none;background:none;font-size:12.5px;color:var(--text);
+                 padding:2px 4px;border-radius:6px;outline:none;cursor:pointer}
+  select.chipsel:hover{background:var(--hover)}
+  textarea{width:100%;border:none;outline:none;resize:none;font:inherit;
+           min-height:52px;max-height:180px;padding:4px 6px;background:none}
+  textarea::placeholder{color:#b6bac1}
+  .rowbot{display:flex;align-items:center;gap:4px;padding:4px 2px 2px}
+  .iconbtn{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+           justify-content:center;color:var(--muted)}
+  .iconbtn svg{width:16px;height:16px;stroke:currentColor}
+  .iconbtn:hover{background:var(--hover);color:var(--text)}
+  .modeltag{margin-left:auto;display:flex;align-items:center;gap:5px;height:26px;
+            padding:0 10px;border-radius:7px;font-size:12.5px;color:var(--muted)}
+  .modeltag svg{width:13px;height:13px;stroke:var(--muted)}
+  .send{width:32px;height:32px;border-radius:50%;background:var(--brand);
+        display:flex;align-items:center;justify-content:center;flex:0 0 32px}
+  .send svg{width:15px;height:15px;stroke:#fff}
+  .send:disabled{opacity:.45;cursor:default}
+  .upinfo{font-size:12px;color:var(--ok);background:var(--ok-soft);
+          border-radius:6px;padding:1px 8px}
+
+  /* 对话态 */
+  .top{display:flex;align-items:center;gap:8px;padding:12px 20px 10px 48px;
+       border-bottom:1px solid var(--line)}
+  .top b{font-size:14px;font-weight:500}
+  .badge{padding:1px 8px;border-radius:999px;background:var(--brand-soft);
+         color:var(--brand);font-size:12px}
+  .badge.warn{background:var(--warn-soft);color:var(--warn)}
+  .top .sp{flex:1}
+  .log{flex:1;overflow:auto;padding:20px 24px}
+  .msg{max-width:760px;margin:0 auto 18px;display:flex;flex-direction:column}
+  .msg.me{align-items:flex-end}
+  .who{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .bubble{padding:10px 14px;border-radius:12px;background:var(--hover);
+          white-space:pre-wrap;word-break:break-word;max-width:88%}
+  .msg.me .bubble{background:var(--brand-soft)}
+  .msg.sys{align-items:center}
+  .msg.sys .bubble{background:var(--ok-soft);color:var(--ok);font-size:12.5px}
+  .meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
+  .meta .tag{background:var(--hover);border-radius:5px;padding:0 6px}
+  .meta .bad{background:var(--warn-soft);color:var(--warn)}
+  /* 任务态下的操作按钮（取消 / 重试）：沿用 tag 的尺寸，但要能点、要有 hover 反馈 */
+  .meta .act{cursor:pointer;border:1px solid var(--line);background:#fff;
+             color:var(--text);border-radius:5px;padding:0 8px;font:inherit}
+  .meta .act:hover{background:var(--hover)}
+  .meta .act[disabled]{opacity:.5;cursor:default}
+
+  /* 页面视图（智能体/空间/知识库/总览） */
+  .page{flex:1;overflow:auto;padding:32px 40px}
+  .page h2{font-size:18px;font-weight:500;margin:0 0 6px}
+  .page .sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+  .panel{border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+         margin-bottom:14px;max-width:760px;background:#fff}
+  .panel h3{margin:0 0 4px;font-size:14px;font-weight:500}
+  .panel p{margin:0;color:var(--muted);font-size:13px}
+  .panel .st{display:inline-block;margin-left:8px;padding:0 8px;border-radius:999px;
+             font-size:11.5px;vertical-align:2px}
+  .st.ok{background:var(--ok-soft);color:var(--ok)}
+  .st.no{background:var(--warn-soft);color:var(--warn)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+        gap:12px;max-width:760px}
+  .stat{border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat b{display:block;font-size:22px;font-weight:500}
+  .stat span{font-size:12px;color:var(--muted)}
+
+  /* 登录 */
+  .mask{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+        background:#fafafa;z-index:50}
+  .card.login{width:360px;padding:26px;border-radius:16px;box-shadow:var(--shadow)}
+  .card.login strong{font-size:16px;font-weight:500}
+  .card.login input{width:100%;padding:9px 12px;border:1px solid var(--line);
+                    border-radius:8px;font:inherit;margin:14px 0 10px;outline:none}
+  .card.login input:focus{border-color:var(--brand)}
+  .card.login button{width:100%;padding:9px;border-radius:8px;background:var(--brand);
+                     color:#fff;font-size:14px}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app" id="app" style="display:none">
+
+  <!-- ================= 侧栏 ================= -->
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"
+        stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/></svg></span>
+      <b>明辨</b>
+      <button class="fold" id="fold" title="收起侧栏">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <nav>
+      <button class="nav on" data-view="chat" id="navNew">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg>
+        新建对话</button>
+      <button class="nav" data-view="agents">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9 13h.01M15 13h.01"/></svg>
+        智能体</button>
+      <button class="nav" data-view="space">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+        个人空间</button>
+      <button class="nav" data-view="kb">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v16H6.5A1.5 1.5 0 0 1 5 18.5z"/>
+          <path d="M9 4v16"/></svg>
+        知识库 · 技能</button>
+      <button class="nav" data-view="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+        数据总览</button>
+      <button class="nav" data-view="audit">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <path d="M9 3h6l2 2h2a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2z"/>
+          <path d="M9 11h6M9 15h4"/></svg>
+        审计日志</button>
+    </nav>
+
+    <div class="sect">最近</div>
+    <div class="hist" id="list"><div class="empty">暂无对话历史</div></div>
+
+    <div class="side-foot">
+      <a class="footrow" href="https://github.com/chenjack-oss" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <path d="M9 19c-4 1.2-4-2-6-2.5m12 4.5v-3a2.6 2.6 0 0 0-.7-2c2.4-.3 4.7-1.2 4.7-5.2
+                   a4 4 0 0 0-.1-1.8 3.7 3.7 0 0 0-.1-2.7s-1.1-.3-3.5 1.3a9 9 0 0 0-4.6 0
+                   C8.3 4.9 7.2 5.2 7.2 5.2a3.7 3.7 0 0 0-.1 2.7 4 4 0 0 0-.1 1.8
+                   c0 4 2.3 4.9 4.7 5.2a2.6 2.6 0 0 0-.7 2v3"/></svg>
+        GitHub</a>
+      <span class="footrow" id="whoami" title="点击退出登录" style="cursor:pointer">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+        <span id="uname">未登录</span>
+        <span class="sub" id="logoutBtn" title="退出登录">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round"><path d="M14 4H7v16h7M11 12h9m0 0-3-3m3 3-3 3"/></svg>
+        </span>
+      </span>
+    </div>
+  </aside>
+
+  <!-- ================= 主区 ================= -->
+  <main class="main">
+    <button class="unfold" id="unfold" title="展开侧栏" style="display:none">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+
+    <!-- 对话视图 -->
+    <section class="view on" id="view-chat">
+      <div class="hero" id="hero">
+        <h1>审问之，明辨之</h1>
+        <div class="card">
+          <div class="rowtop">
+            <span class="chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+                <path d="M4 6h16M4 12h10M4 18h7"/></svg>
+              <select class="chipsel" id="tierSel" title="档位 = 允许模型用什么能力">
+                <option value="auto">档位：自动判断</option>
+                <option value="direct">档位：直接答（最快）</option>
+                <option value="tool">档位：用工具（读文件）</option>
+                <option value="rag">档位：检索答（未接入）</option>
+                <option value="research">档位：深度调研（出报告）</option>
+              </select>
+            </span>
+          </div>
+          <textarea id="input" rows="2"
+            placeholder="问点什么？Enter 发送，Shift+Enter 换行"></textarea>
+          <div class="rowbot">
+            <button class="iconbtn" id="upBtn" title="上传文件（tool 档可读取）">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/></svg></button>
+            <input type="file" id="file" style="display:none">
+            <span id="upInfo"></span>
+            <span class="modeltag" id="modelTag" title="当前主模型（服务端配置）">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+                <rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>
+              <span id="modelName">…</span></span>
+            <button class="send" id="send" title="发送">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="top" id="chatTop" style="display:none">
+        <b id="title">新对话</b>
+        <span class="badge" id="tierBadge"></span>
+        <span class="badge" id="srcBadge" style="display:none"></span>
+        <span class="sp"></span>
+      </div>
+      <div class="log" id="log" style="display:none"></div>
+
+      <div class="hero" id="heroBottom" style="display:none;padding:12px 24px 18px;flex:0 0 auto">
+        <div class="card" style="margin:0 auto">
+          <textarea id="input2" rows="1" style="min-height:24px"
+            placeholder="继续问点什么？Enter 发送，Shift+Enter 换行"></textarea>
+          <div class="rowbot">
+            <button class="iconbtn" id="upBtn2" title="上传文件（tool 档可读取）">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/></svg></button>
+            <span id="upInfo2"></span>
+            <span class="modeltag"><span id="modelName2">…</span></span>
+            <button class="send" id="send2" title="发送">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 智能体 -->
+    <section class="view" id="view-agents">
+      <div class="page">
+        <h2>智能体</h2>
+        <div class="sub">真实装配状态，来自 /health 的 subagents 字段（非装饰）</div>
+        <div class="panel"><h3>明辨执行核 <span class="st ok">可用</span></h3>
+          <p>主智能体：单智能体 + 工具循环（ReAct）。四档只是能力约束，判断权在模型。</p></div>
+        <div id="subagentList"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-space">
+      <div class="page">
+        <h2>个人空间</h2>
+        <div class="sub">账户信息 · 规划中</div>
+        <div class="panel" id="mePanel"><h3>账户</h3><p id="meInfo">…</p></div>
+        <div class="panel"><h3>偏好设置 <span class="st no">未接入</span></h3>
+          <p>会话默认档位、上下文长度等设置项在后续版本开放。</p></div>
+      </div>
+    </section>
+
+    <!-- 知识库 · 技能 -->
+    <section class="view" id="view-kb">
+      <div class="page">
+        <h2>知识库 · 技能</h2>
+        <div class="sub">技能真实挂载，知识库待 P4 接入自建 Agentic RAG</div>
+        <div class="panel"><h3>知识库（RAG）<span class="st no">未接入</span></h3>
+          <p>选「检索答」档会诚实降级，不编造检索结果。接入后此页可上传文档、建索引。</p></div>
+        <div id="skillList"></div>
+      </div>
+    </section>
+
+    <!-- 数据总览 -->
+    <section class="view" id="view-stats">
+      <div class="page">
+        <h2>数据总览</h2>
+        <div class="sub">全部来自 /v1/usage 真实记帐，不是装饰数字</div>
+        <div class="grid" id="statGrid"></div>
+        <div style="height:14px"></div>
+        <div class="panel" id="costPanel"><h3>Token 成本</h3><p>加载中…</p></div>
+        <div class="panel"><h3>配额</h3><p id="quotaInfo">…</p></div>
+      </div>
+    </section>
+
+    <!-- 审计日志（P-4） -->
+    <section class="view" id="view-audit">
+      <div class="page">
+        <h2>审计日志</h2>
+        <div class="sub">关键操作留痕（建用户 / 取消任务 / 续跑 / 删记忆）—— 合规底线</div>
+        <div id="auditList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 登录 -->
+<div class="mask" id="mask">
+  <div class="card login">
+    <strong>登录明辨平台</strong>
+    <input id="key" placeholder="mj_…（API Key）" autocomplete="off">
+    <button id="login">进入</button>
+    <div class="hint">Key 由 <code>scripts/bootstrap.py</code> 创建时生成，只显示一次。<br>
+      丢失只能找管理员重签（库里只存哈希）。</div>
+  </div>
+</div>
+
+<script>
+const K = 'mj_api_key';
+let key = localStorage.getItem(K) || '';
+let sid = null, tiers = [], meta = null;
+
+// 服务器上平台挂在 /mj/ 路径下（80 端口与 Yuxi 共用），接口必须带 /mj 前缀；
+// 本地直接跑（无前缀）时 BASE 为空串，同一份代码两种部署都能用。
+const BASE = location.pathname.indexOf('/mj') === 0 ? '/mj' : '';
+
+const $ = id => document.getElementById(id);
+const api = async (path, opt={}) => {
+  opt.headers = Object.assign({'X-API-Key': key, 'Content-Type':'application/json'}, opt.headers||{});
+  const r = await fetch(BASE + path, opt);
+  if (r.status === 401) { localStorage.removeItem(K); location.reload(); }
+  return r;
+};
+
+/* ---------- 视图切换 ---------- */
+let curView = 'chat';
+function showView(v){
+  curView = v;
+  document.querySelectorAll('.nav[data-view]').forEach(x=>x.classList.remove('on'));
+  document.querySelector('.nav[data-view="'+v+'"]').classList.add('on');
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  $('view-'+v).classList.add('on');
+  if(v==='stats') renderStats();
+  if(v==='kb') renderSkills();
+  if(v==='space') renderMe();
+  if(v==='audit') renderAudit();
+  if(v==='agents') renderAgents();
+}
+document.querySelectorAll('.nav[data-view]').forEach(b=>{
+  b.onclick = ()=>showView(b.dataset.view);
+});
+$('navNew').onclick = ()=>{ showView('chat'); newSessionUI(); };
+
+/* ---------- 侧栏折叠 ---------- */
+$('fold').onclick = ()=>{ $('side').classList.add('hide'); $('unfold').style.display='block'; };
+$('unfold').onclick = ()=>{ $('side').classList.remove('hide'); $('unfold').style.display='none'; };
+
+/* ---------- 启动 ---------- */
+async function boot(){
+  const r = await api('/v1/me');
+  if(!r.ok) return;
+  const me = await r.json();
+  $('uname').textContent = me.user.name || me.user.id;
+  $('mask').style.display='none';
+  $('app').style.display='flex';
+  try{
+    tiers = (await (await api('/v1/tiers')).json()).tiers;
+    meta  = await (await api('/v1/meta')).json();
+  }catch(e){ /* meta 拿不到不阻塞聊天 */ }
+  const mn = meta ? meta.model.main : '';
+  $('modelName').textContent = mn || '模型未配置';
+  $('modelName2').textContent = mn || '模型未配置';
+  renderSkills(); renderStats(); renderMe();
+  await refreshList();
+}
+
+/* ---------- 会话 ---------- */
+async function refreshList(){
+  const r = await api('/v1/sessions');
+  if(!r.ok) return;
+  const list = await r.json();
+  const box = $('list'); box.innerHTML='';
+  const ss = list.sessions||[];
+  if(!ss.length){ box.innerHTML = '<div class="empty">暂无对话历史</div>'; return; }
+  ss.forEach(s=>{
+    const d = document.createElement('div');
+    d.className = 'hitem' + (s.id===sid?' on':'');
+    d.textContent = s.title || '新对话';
+    d.onclick = ()=>openSession(s.id, s.title);
+    box.appendChild(d);
+  });
+}
+
+function newSessionUI(){
+  // 不立刻建后端会话：首条消息发出时才建（lazy），空态才能显示 hero
+  sid = null;
+  $('title').textContent = '新对话';
+  $('log').innerHTML=''; $('log').style.display='none';
+  $('chatTop').style.display='none';
+  $('hero').style.display='flex';
+  $('heroBottom').style.display='none';
+  $('tierBadge').textContent=''; $('srcBadge').style.display='none';
+  refreshList();
+}
+
+async function openSession(id, title){
+  sid = id;
+  showChat();
+  $('title').textContent = title || '新对话';
+  $('hero').style.display='none';
+  $('chatTop').style.display='flex';
+  $('log').style.display='block';
+  $('heroBottom').style.display='flex';
+  const r = await api('/v1/sessions/'+id);
+  if(!r.ok) return;
+  const d = await r.json();
+  $('log').innerHTML='';
+  (d.messages||[]).forEach(m=>paint(m.role, m.content, m.tier, m.meta));
+  $('log').scrollTop = $('log').scrollHeight;
+  refreshList();
+}
+
+function showChat(){ showView('chat'); }
+
+/* ---------- 消息渲染 ---------- */
+function paint(role, content, tier, meta_){
+  const w = document.createElement('div');
+  w.className = 'msg' + (role==='user'?' me':(role==='system'?' sys':''));
+  if(role!=='system'){
+    const who = document.createElement('div'); who.className='who';
+    who.textContent = role==='user' ? '我' : ('明辨' + (tier? ' · '+tierLabel(tier) : ''));
+    w.appendChild(who);
+  }
+  const b = document.createElement('div'); b.className='bubble'; b.textContent=content;
+  w.appendChild(b);
+  if(meta_ && meta_.decision){
+    const m=document.createElement('div'); m.className='meta';
+    const src = meta_.decision.source;
+    m.innerHTML = '<span class="tag">'+tierLabel(tier)+'</span>'
+      + '<span class="tag">'+(src==='manual'?'手动指定':src==='session'?'会话偏好':'模型判断')+'</span>'
+      + '<span class="tag">'+(meta_.elapsed_sec||0)+'s</span>'
+      + (meta_.search_used? '<span class="tag">检索 '+meta_.search_used+' 次</span>':'')
+      + (meta_.tools_used&&meta_.tools_used.length? '<span class="tag">工具: '+meta_.tools_used.join(' / ')+'</span>':'')
+      + (meta_.degradation? '<span class="tag bad">降级: '+meta_.degradation+'</span>':'');
+    w.appendChild(m);
+  }
+  $('log').appendChild(w);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+function tierLabel(t){
+  const x = (tiers||[]).find(y=>y.id===t);
+  return x? x.label : (t||'');
+}
+// 转义 HTML，防止子任务清单 / 用户输入里的 < > & 破坏 DOM 或注入
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ---------- 流式输出（打字机）----------
+   后端 POST /v1/sessions/{id}/messages/stream 返回 SSE：
+       event: start / token / tool / done / error
+   用 fetch + ReadableStream 手工解帧 —— EventSource 只支持 GET，
+   而提问内容可能很长（上限 20000 字），塞不进 query string。
+
+   三个容易做错的细节：
+     1. token 是**增量**，直接 append 到 textContent。用新文本整体替换会让
+        已渲染内容闪一下，长答案下还会明显卡。
+     2. 首字可能要等很久（rag 档要先跑 kb_search，实测 20~40s）。
+        这段时间必须显示"正在调用 kb_search…"，否则用户看到的就是白屏。
+     3. 解帧要留尾巴：一次 read() 可能切在帧中间，必须把最后一行留在 buffer 里
+        等下一块补齐，否则会随机丢事件。 */
+function paintStream(tier){
+  const w = document.createElement('div'); w.className='msg';
+  const who = document.createElement('div'); who.className='who';
+  who.textContent = '明辨' + (tier ? ' · '+tierLabel(tier) : '');
+  w.appendChild(who);
+  const b = document.createElement('div'); b.className='bubble'; b.textContent='';
+  const st = document.createElement('div'); st.className='meta';
+  st.innerHTML = '<span class="tag">思考中…</span>';
+  w.appendChild(b); w.appendChild(st);
+  $('log').appendChild(w);
+  $('log').scrollTop = $('log').scrollHeight;
+  return {w, b, st};
+}
+
+async function streamSend(s, body, tier){
+  const h = paintStream(tier);
+  const t0 = Date.now();
+  let full = '', done = null;
+  try{
+    const r = await fetch(BASE + '/v1/sessions/'+s+'/messages/stream', {
+      method:'POST',
+      headers: {'X-API-Key': key, 'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if(!r.ok){
+      if(r.status===429){
+        const wait = parseInt(r.headers.get('Retry-After')||'1',10);
+        h.b.textContent = '请求太频繁了，请 '+wait+' 秒后再试（按 user 维度限流，桶容量 20 / 补充 2 每秒）';
+        h.st.innerHTML = '<span class="tag bad">429</span>';
+        setBusy(true); await sleep(wait*1000); setBusy(false);
+      }else{
+        let msg = String(r.status);
+        try{ const d = await r.json(); msg = d.detail || msg; }catch(e){}
+        h.b.textContent = '请求失败：'+msg;
+        h.st.innerHTML = '<span class="tag bad">'+r.status+'</span>';
+      }
+      return;
+    }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder('utf-8');
+    let buf = '', ev = null;
+    for(;;){
+      const {value, done:fin} = await reader.read();
+      if(fin) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\n');
+      buf = lines.pop();                      // 可能是不完整的一行，留给下一块
+      for(const ln0 of lines){
+        const ln = ln0.replace(/\r$/,'');
+        if(ln.startsWith('event: ')){ ev = ln.slice(7); continue; }
+        if(!ln.startsWith('data: ') || !ev) continue;
+        let d; try{ d = JSON.parse(ln.slice(6)); }catch(e){ ev=null; continue; }
+        if(ev==='token'){
+          full += d.text || '';
+          h.b.textContent = full;
+          $('log').scrollTop = $('log').scrollHeight;
+        }else if(ev==='tool'){
+          h.st.innerHTML = '<span class="tag">正在调用 '+(d.name||'工具')+'…</span>';
+        }else if(ev==='done'){
+          done = d;
+        }else if(ev==='error'){
+          full += '\n[出错了] '+(d.error||'');
+          h.b.textContent = full;
+        }
+        ev = null;
+      }
+    }
+  }catch(e){
+    h.b.textContent = full || ('网络错误：'+e);
+    h.st.innerHTML = '<span class="tag bad">连接中断</span>';
+    return;
+  }
+  if(!done){ h.st.innerHTML = '<span class="tag bad">流未正常结束</span>'; return; }
+  if(!full) h.b.textContent = done.content || '';
+  const meta_ = done.meta || {};
+  const src = meta_.decision && meta_.decision.source;
+  h.st.innerHTML =
+      '<span class="tag">'+tierLabel(done.tier||tier)+'</span>'
+    + '<span class="tag">'+(src==='manual'?'手动指定':src==='session'?'会话偏好':'模型判断')+'</span>'
+    + '<span class="tag">'+((Date.now()-t0)/1000).toFixed(1)+'s</span>'
+    + (meta_.search_used? '<span class="tag">检索 '+meta_.search_used+' 次</span>':'')
+    + ((done.tools_used&&done.tools_used.length)? '<span class="tag">工具: '+done.tools_used.join(' / ')+'</span>':'')
+    + (meta_.cached? '<span class="tag">缓存命中</span>':'')
+    + (meta_.degradation? '<span class="tag bad">降级: '+meta_.degradation+'</span>':'');
+}
+
+/* ---------- 发送 ---------- */
+async function ensureSession(){
+  if(sid) return sid;
+  const r = await api('/v1/sessions', {method:'POST', body:JSON.stringify({title:'新对话'})});
+  if(!r.ok) return null;
+  const s = (await r.json()).session;
+  sid = s.id; $('title').textContent = s.title || '新对话';
+  refreshList();
+  return sid;
+}
+
+async function send(text){
+  const input = sid? $('input2') : $('input');
+  const v = (text!==undefined? text : input.value).trim();
+  if(!v) return;
+  input.value='';
+  setBusy(true);
+  // 进入对话态
+  $('hero').style.display='none';
+  $('chatTop').style.display='flex';
+  $('log').style.display='block';
+  $('heroBottom').style.display='flex';
+  if(!sid) $('title').textContent = v.slice(0,20) || '新对话';
+  paint('user', v, '', null);
+
+  const s = await ensureSession();
+  if(!s){ paint('assistant','会话创建失败，请重试','',null); setBusy(false); return; }
+
+  const tier = $('tierSel').value;
+  const body = {content:v};
+  if(tier !== 'auto') body.tier = tier;
+  try{
+    // research 档仍然走异步任务：实测 40~125 秒，异步路径有状态轮询、
+    // 可取消、可重试，比挂一条几分钟的 HTTP 连接稳得多。
+    // 其余档位一律走流式 —— 打字机效果，且 rag 档能看到"正在调用 kb_search…"。
+    if(tier !== 'research'){
+      await streamSend(s, body, tier);
+      $('title').textContent = v.slice(0,20) || '新对话';
+      refreshList();
+      setBusy(false);
+      (sid? $('input2'):$('input')).focus();
+      return;
+    }
+    const r = await api('/v1/sessions/'+s+'/messages',
+                        {method:'POST', body:JSON.stringify(body)});
+    const d = await r.json();
+    if(!r.ok){
+      // 429 = 被限流。这里要把 Retry-After 用起来，让按钮倒计时而不是让用户干等
+      if(r.status===429){
+        const wait = parseInt(r.headers.get('Retry-After')||'1',10);
+        paint('assistant','请求太频繁了，请 '+wait+' 秒后再试（按 user 维度限流，桶容量 20 / 补充 2 每秒）','',null);
+        setBusy(true); await sleep(wait*1000); setBusy(false);
+      }else{
+        paint('assistant','请求失败：'+(d.detail||r.status),'',null);
+      }
+    }else if(d.task && d.result){
+      // eager（服务端没配 Redis 时内联执行）：任务已跑完，结果直接带回来了
+      paint('assistant', d.result.content, d.result.tier, d.result.meta);
+    }else if(d.task){
+      // 202：任务已受理，转入轮询。research 档实测 40~50 秒，同步等会把页面卡死
+      await trackTask(d.task);
+    }else{
+      paint('assistant', d.content, d.tier, d.meta);
+    }
+    $('title').textContent = v.slice(0,20) || '新对话';
+    refreshList();
+  }catch(e){ paint('assistant','网络错误：'+e,'',null); }
+  setBusy(false);
+  (sid? $('input2'):$('input')).focus();
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ---------- 异步任务轮询（P3）----------
+   为什么要单独一段逻辑：research 档实测 40~50 秒，HTTP 同步等必然超时。
+   服务端返回 202 + task_id 后，前端每 2 秒查一次状态，把 pending/running
+   **如实显示出来** —— 转圈但没有任何反馈，用户会以为卡死了。 */
+function statusText(st, sec){
+  const s = Math.round(sec);
+  switch(st){
+    case 'pending':  return '任务已受理，等待 worker 取走…（'+s+'s）';
+    case 'running':  return '正在执行…（'+s+'s）';
+    case 'success':  return '完成（'+s+'s）';
+    case 'failure':  return '任务失败（'+s+'s）';
+    case 'revoked':  return '已取消（'+s+'s）';
+    case 'stalled':  return '任务中断：worker 心跳断了（'+s+'s）—— 可以点重试';
+    case 'interrupted': return '规划完成，等待你确认执行（'+s+'s）';
+    default:         return st+'（'+s+'s）';
+  }
+}
+
+async function trackTask(task){
+  const tid = task.id, t0 = Date.now();
+  let cur = task.status;
+
+  // 占位消息：先显示状态，任务完成后把内容替换掉
+  const w = document.createElement('div'); w.className='msg';
+  const who = document.createElement('div'); who.className='who'; who.textContent='明辨 · 任务';
+  const b = document.createElement('div'); b.className='bubble';
+  const m = document.createElement('div'); m.className='meta';
+  w.appendChild(who); w.appendChild(b); w.appendChild(m);
+  b.textContent = statusText(cur, 0);
+  m.innerHTML = '<span class="tag">'+task.tier+'</span><span class="tag">'+tid+'</span>';
+  const acts = document.createElement('div'); acts.className='meta';
+  w.appendChild(acts);
+  $('log').appendChild(w); $('log').scrollTop = $('log').scrollHeight;
+
+  const stopBtn = document.createElement('button');
+  stopBtn.className='act'; stopBtn.textContent='取消';
+  stopBtn.onclick = async ()=>{
+    stopBtn.disabled = true; stopBtn.textContent='取消中…';
+    const r = await api('/v1/tasks/'+tid, {method:'DELETE'});
+    if(!r.ok){ stopBtn.disabled=false; stopBtn.textContent='取消'; }
+  };
+  acts.appendChild(stopBtn);
+
+  while(true){
+    await sleep(2000);
+    const r = await api('/v1/tasks/'+tid);
+    if(!r.ok){ b.textContent='查询任务状态失败（HTTP '+r.status+'）'; return; }
+    const d = (await r.json()).task;
+    cur = d.status;
+    b.textContent = statusText(cur, (Date.now()-t0)/1000);
+    $('log').scrollTop = $('log').scrollHeight;
+    if(['success','failure','revoked','stalled','interrupted'].indexOf(cur) >= 0) break;
+  }
+
+  acts.innerHTML='';
+
+  // P-3：interrupted = 规划完成、等人工确认。渲染规划清单 + 确认/修改交互，
+  // 而不是像失败那样只给个重试。这是"任务级 interrupt/resume"的前端出口。
+  if(cur === 'interrupted'){
+    b.textContent = '规划完成，请确认后我再开始执行：';
+    const d = (await (await api('/v1/tasks/'+tid)).json()).task;
+    const intr = d.interrupt || {};
+    const plan = intr.plan || [];
+    const list = document.createElement('div');
+    list.style.cssText = 'margin:8px 0 4px;padding-left:18px;font-size:13px;line-height:1.9';
+    list.innerHTML = plan.length
+      ? plan.map((p,i)=>'<div>'+ (i+1) +'. '+esc(p)+'</div>').join('')
+      : '<div style="color:#8a8f99">（无子任务清单）</div>';
+    w.appendChild(list);
+
+    const okBtn = document.createElement('button');
+    okBtn.className='act'; okBtn.textContent='确认执行';
+    okBtn.onclick = async ()=>{
+      okBtn.disabled = true; okBtn.textContent='提交中…';
+      const rr = await api('/v1/tasks/'+tid+'/resume',
+        {method:'POST', body:JSON.stringify({confirmed:true, plan:plan})});
+      if(rr.ok){
+        w.remove();
+        const nt = (await rr.json()).task;
+        if(nt && nt.status === 'success'){
+          paint('assistant', (nt.result||{}).content||'', nt.tier, (nt.result||{}).meta);
+        }else{
+          await trackTask({id:tid, tier:task.tier});
+        }
+      }else{
+        okBtn.disabled=false; okBtn.textContent='确认执行';
+        let msg='提交失败'; try{ msg=(await rr.json()).detail||msg; }catch(e){}
+        b.textContent='确认失败：'+msg;
+      }
+    };
+    acts.appendChild(okBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className='act'; editBtn.textContent='修改规划';
+    editBtn.onclick = ()=>{
+      const txt = document.createElement('textarea');
+      txt.value = plan.join('\n');
+      txt.style.cssText = 'width:100%;min-height:90px;border:1px solid var(--line);'
+        +'border-radius:8px;padding:8px;font:inherit;margin:6px 0;resize:vertical';
+      list.innerHTML=''; list.appendChild(txt);
+      const save = document.createElement('button');
+      save.className='act'; save.textContent='按此修改确认';
+      save.onclick = async ()=>{
+        const newPlan = txt.value.split('\n').map(x=>x.trim()).filter(Boolean);
+        save.disabled = true;
+        const rr = await api('/v1/tasks/'+tid+'/resume',
+          {method:'POST', body:JSON.stringify({confirmed:true, plan:newPlan})});
+        if(rr.ok){ w.remove(); await trackTask({id:tid, tier:task.tier}); }
+        else{ save.disabled=false; save.textContent='按此修改确认'; }
+      };
+      list.appendChild(save);
+      editBtn.style.display='none';
+    };
+    acts.appendChild(editBtn);
+    return;
+  }
+
+  if(cur === 'success'){
+    const d = (await (await api('/v1/tasks/'+tid)).json()).task;
+    const res = d.result || {};
+    b.textContent = res.content || '（任务成功但没有返回内容）';
+    if(res.meta){
+      const mt = res.meta;
+      m.innerHTML = '<span class="tag">'+res.tier+'</span>'
+        + '<span class="tag">'+(mt.elapsed_sec||0)+'s</span>'
+        + (mt.search_used? '<span class="tag">检索 '+mt.search_used+' 次</span>':'')
+        + (mt.tools_used&&mt.tools_used.length? '<span class="tag">工具: '+mt.tools_used.join(' / ')+'</span>':'');
+    }
+    return;
+  }
+
+  // 未成功：给一个重试出口。
+  // 存在理由（实测）：worker 整个容器没了的时候，Celery 不会把消息从 unacked 放回来，
+  // 只能靠应用层重试。按钮不是装饰，是那个兜底。
+  const d = (await (await api('/v1/tasks/'+tid)).json()).task;
+  if(d.error){
+    const e = document.createElement('div'); e.className='meta';
+    e.innerHTML = '<span class="tag bad">'+d.error+'</span>';
+    w.appendChild(e);
+  }
+  if(cur === 'stalled' || cur === 'failure'){
+    const rb = document.createElement('button'); rb.className='act'; rb.textContent='重试';
+    rb.onclick = async ()=>{
+      rb.disabled = true; rb.textContent='重试中…';
+      const rr = await api('/v1/tasks/'+tid+'/retry', {method:'POST', body:'{}'});
+      if(rr.ok){
+        w.remove();
+        await trackTask({id:tid, tier:task.tier});
+      }else{
+        rb.disabled=false; rb.textContent='重试';
+      }
+    };
+    acts.appendChild(rb);
+  }
+}
+
+function setBusy(b){
+  $('send').disabled=b; $('send2').disabled=b;
+  $('send').title = b? '模型运行中…':'发送';
+}
+
+/* ---------- 文件上传（真实接口） ---------- */
+async function upload(file){
+  const s = await ensureSession();
+  if(!s) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch(BASE+'/v1/sessions/'+s+'/files',
+    {method:'POST', headers:{'X-API-Key':key}, body:fd});
+  const d = await r.json();
+  const info = (sid? $('upInfo2'):$('upInfo'));
+  if(r.ok){
+    info.innerHTML = '<span class="upinfo">'+file.name+' 已上传</span>';
+    paint('system','已上传 '+file.name+'（'+Math.round(file.size/1024)+' KB）'
+      +'，选「用工具」档即可让我读取','',null);
+    setTimeout(()=>info.innerHTML='', 4000);
+  }else{
+    paint('assistant','上传失败：'+(d.detail||r.status),'',null);
+  }
+}
+$('upBtn').onclick = ()=>$('file').click();
+$('upBtn2').onclick = ()=>$('file').click();
+$('file').onchange = e=>{ if(e.target.files[0]) upload(e.target.files[0]); e.target.value=''; };
+
+/* ---------- 数据总览 / 技能 / 账户 ---------- */
+async function renderStats(){
+  const r = await api('/v1/usage');
+  if(!r.ok) return;
+  const d = await r.json();
+  const s = d.summary||{};
+  const items = [
+    ['消息数', s['message']||0],
+    ['联网检索', s['tool:internet_search']||0],
+    ['写文档', s['tool:write_document']||0],
+    ['上传文件', s['upload']||0],
+    ['降级次数', Object.keys(s).filter(k=>k.startsWith('degraded:'))
+      .reduce((a,k)=>a+s[k],0)],
+  ];
+  $('statGrid').innerHTML = items.map(([k,v])=>
+    '<div class="stat"><b>'+v+'</b><span>'+k+'</span></div>').join('');
+
+  // P-4：token 成本核算。token 数是客观记账，成本按配置单价换算（未配单价只报 token）。
+  const costEl = document.getElementById('costPanel');
+  if(costEl){
+    try{
+      const cr = await api('/v1/cost?since_days=30');
+      if(cr.ok){
+        const cd = await cr.json();
+        const t = cd.totals||{};
+        const fmtCost = v => (v==null||v===0) ? '未计费' : ('¥'+Number(v).toFixed(4));
+        let byModel = (cd.by_model||[]).map(m =>
+          '<div style="font-size:12.5px;color:#8a8f99;margin-top:2px">'
+          + esc(m.model||'unknown')+'：入 '+m.input_tokens+' / 出 '+m.output_tokens
+          + ' token' + (m.cost!=null?' · '+fmtCost(m.cost):'') + '</div>'
+        ).join('');
+        if(!byModel) byModel = '<div style="font-size:12.5px;color:#8a8f99">近 30 天暂无 token 用量</div>';
+        costEl.innerHTML = '<h3>Token 成本 <span class="st ok">近 30 天</span></h3>'
+          + '<p>输入 '+t.input_tokens+' token · 输出 '+t.output_tokens+' token'
+          + ' · 合计 '+fmtCost(t.cost)+'</p>' + byModel;
+      }
+    }catch(e){ /* cost 拿不到不影响主视图 */ }
+  }
+
+  const q = d.quota||{};
+  $('quotaInfo').textContent = '每日检索 '+(q.searches_per_day||'-')+' 次 · 每日消息 '
+    +(q.messages_per_day||'-')+' 条（P1 只记帐，硬限流随控制层落地）';
+}
+
+function renderSkills(){
+  const box = $('skillList'); if(!box) return;
+  const skills = (meta&&meta.skills)||[];
+  box.innerHTML = skills.map(sk=>
+    '<div class="panel"><h3>'+ (sk.name||sk.id) +' <span class="st ok">已挂载</span></h3>'
+    +'<p>'+ (sk.description||'') + (sk.version? ' · v'+sk.version:'') +'</p></div>'
+  ).join('') || '<div class="panel"><h3>技能 <span class="st no">未挂载</span></h3>'
+    +'<p>skills 目录为空或容器内未挂载。</p></div>';
+}
+
+async function renderMe(){
+  const r = await api('/v1/me');
+  if(!r.ok) return;
+  const d = await r.json();
+  $('meInfo').textContent = d.user.name+' · '+d.user.id+' · 角色 '+d.user.role
+    +' · Key 前缀 '+d.user.api_key_prefix+'…';
+}
+
+/* ---------- 审计日志（P-4） ---------- */
+const AUDIT_LABEL = {
+  user_create:'创建用户', task_cancel:'取消任务', task_resume:'续跑任务',
+  memory_delete:'删除记忆',
+};
+async function renderAudit(){
+  const box = $('auditList'); if(!box) return;
+  const r = await api('/v1/audit?limit=100');
+  if(!r.ok){ box.innerHTML='<div class="panel"><p>审计日志加载失败（HTTP '+r.status+'）</p></div>'; return; }
+  const d = await r.json();
+  const rows = d.audit||[];
+  if(!rows.length){
+    box.innerHTML = '<div class="panel"><h3>暂无审计记录</h3>'
+      +'<p>关键操作（建用户/取消任务/续跑/删记忆）会在这里留痕。</p></div>';
+    return;
+  }
+  box.innerHTML = rows.map(a=>{
+    const t = a.created_at ? new Date(a.created_at).toLocaleString('zh-CN') : '';
+    return '<div class="panel"><h3>'+(AUDIT_LABEL[a.action]||a.action||'操作')+'</h3>'
+      +'<p>'+(a.target?'目标 '+esc(String(a.target))+'':'')
+      + (a.detail?' · '+esc(String(a.detail)):'')
+      + (t?' · '+t:'')+'</p></div>';
+  }).join('');
+}
+
+/* ---------- 智能体（P-4 动态注册） ---------- */
+const SUBAGENT_LABEL = {
+  'kb-analyst':'知识库分析','db-analyst':'数据查询（只读）',
+  'web-analyst':'联网检索','doc-analyst':'文档产出',
+};
+async function renderAgents(){
+  const box = $('subagentList'); if(!box) return;
+  // /health 是重端点（探活缓存/Langfuse/MCP/RAG，实测 2s+），先渲染加载态，
+  // 数据回来再填充 —— 否则用户看到的是空白页，会以为功能坏了。
+  box.innerHTML = '<div class="panel"><h3>子智能体</h3><p>装配状态加载中…（健康检查约需 2 秒）</p></div>';
+  try{
+    const r = await api('/health');
+    if(!r.ok){ throw new Error('HTTP '+r.status); }
+    const d = await r.json();
+    const sg = d.subagents || {};
+    if(sg.enabled === false){
+      box.innerHTML = '<div class="panel"><h3>子智能体 <span class="st no">已关闭</span></h3>'
+        +'<p>总开关 MJ_SUBAGENTS_ENABLED=0，当前无子智能体。</p></div>';
+      return;
+    }
+    const active = sg.active||[];
+    const byTier = sg.by_tier||{};
+    if(!active.length){
+      box.innerHTML = '<div class="panel"><h3>子智能体 <span class="st no">未装配</span></h3>'
+        +'<p>当前没有生效的子智能体。</p></div>';
+      return;
+    }
+    const cards = active.map(n=>
+      '<div class="panel"><h3>'+(SUBAGENT_LABEL[n]||n)
+      +' <span class="st ok">已装配</span></h3>'
+      +'<p style="font-family:ui-monospace,monospace;font-size:12px">'+esc(n)+'</p></div>'
+    ).join('');
+    const tierRows = Object.keys(byTier).map(t=>
+      '<div style="font-size:12.5px;color:#8a8f99;margin-top:2px">'
+      + esc(t)+' 档 → '+(byTier[t].length? byTier[t].join(' · ') : '（不派发）')+'</div>'
+    ).join('');
+    box.innerHTML = '<div class="panel"><h3>子智能体编排 <span class="st ok">'
+      +active.length+' 个生效</span></h3>'
+      +'<p>按档位动态装配（环境变量可覆盖/禁用），详见 /health。</p>'
+      + tierRows + '</div>' + cards;
+  }catch(e){
+    box.innerHTML = '<div class="panel"><h3>子智能体 <span class="st no">查询失败</span></h3>'
+      +'<p>'+esc(String(e))+'</p></div>';
+  }
+}
+
+/* ---------- 事件绑定 ---------- */
+$('login').onclick = async ()=>{
+  key = $('key').value.trim(); if(!key) return;
+  localStorage.setItem(K, key); await boot();
+};
+$('key').addEventListener('keydown', e=>{ if(e.key==='Enter') $('login').click(); });
+$('logoutBtn').onclick = (e)=>{ e.stopPropagation(); localStorage.removeItem(K); location.reload(); };
+$('send').onclick  = ()=>send();
+$('send2').onclick = ()=>send();
+$('input').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+});
+$('input2').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+});
+// 输入框自适应高度
+[$('input'),$('input2')].forEach(t=>{
+  t.addEventListener('input', ()=>{ t.style.height='auto';
+    t.style.height=Math.min(t.scrollHeight,180)+'px'; });
+});
+
+if(key) boot();
+</script>
+</body>
+</html>

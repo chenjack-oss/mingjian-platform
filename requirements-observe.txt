@@ -1,0 +1,12 @@
+# 明辨平台 · 可选依赖：可观测（Langfuse trace）
+#
+# 默认**不装**。理由写在 requirements.txt 的注释里：langfuse 带进 OpenTelemetry 全家桶，
+# 只走内网镜像的机器上会把构建从 2 分钟拖到 20 分钟以上（实测）。
+#
+# 装法二选一：
+#   1) 进镜像：docker build --build-arg INSTALL_OBSERVE=1 .
+#   2) 跑着的容器：docker exec mingjian-platform-api pip install -r requirements-observe.txt
+#
+# 不装会怎样：src/observe/tracing.py 整体降级为 no-op，/health 报 langfuse=off，
+# 主链路完全不受影响 —— 这是设计好的，不是凑合。
+langfuse>=3

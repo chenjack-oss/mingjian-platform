@@ -1,0 +1,227 @@
+# 明辨平台 · 单机部署（app + postgres）
+#
+# 三条隔离纪律（旧项目踩过血亏：v2 的 compose 服务名也叫 api 且没有顶层 name，
+# 一次 up -d 直接把线上 80 端口的容器顶掉，502 三分钟）：
+#   1. 顶层 name 必须唯一  -> 容器名前缀 mingjian-platform
+#   2. 服务名不与他人重名  -> api 而非 web/api 通用名
+#   3. 独立网络            -> 不与 Yuxi 共用网络
+#
+# 端口：主机 8080（避开 Yuxi 已占用的 80）
+name: mingjian-platform
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: mingjian-platform-postgres
+    environment:
+      POSTGRES_USER: mingjian
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-mingjian}
+      POSTGRES_DB: mingjian
+      TZ: Asia/Shanghai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # 不对主机暴露端口：Yuxi 的 postgres 已占用 6432，这里只在内部网络可达
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mingjian -d mingjian"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [mjnet]
+    restart: unless-stopped
+
+  # P3：Redis 一个组件承担三种用途 —— 语义缓存（0 号库）/ Celery broker（1 号库）/ 令牌桶限流
+  # maxmemory 必须设死：服务器总共 7.4G，P4 还要给 BGE-M3 留 1.2~3G，
+  # 不限制的话缓存会一直涨，最后把整台机器一起拖进 OOM。
+  redis:
+    image: redis:7-alpine
+    container_name: mingjian-platform-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+    volumes:
+      - redisdata:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [mjnet]
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      # P5：把 Agentic RAG 的依赖（torch CPU + FlagEmbedding）打进镜像。
+      # 两个服务都声明同一个 image: mingjian-platform:latest，compose 只会构建一次。
+      args:
+        INSTALL_RAG: "1"
+        DEBIAN_MIRROR: http://mirrors.tencentyun.com/debian
+        DEBIAN_SECURITY_MIRROR: http://mirrors.tencentyun.com/debian-security
+    image: mingjian-platform:latest
+    container_name: mingjian-platform-api
+    env_file: .env
+    environment:
+      MJ_DB_URL: postgresql+psycopg://mingjian:${PG_PASSWORD:-mingjian}@postgres:5432/mingjian
+      MJ_REDIS_URL: redis://redis:6379/0
+      MJ_STORAGE_ROOT: /app/.data/files
+      # P5：业务库单独挂一个卷，否则容器重建后工单会丢。
+      # 即使卷丢了也没关系 —— 种子是确定性的（seed=20260928），重启会重建出完全相同的数据。
+      MJ_BUSINESS_DB: /app/.data/business/business.db
+      # P5：rag MCP 子进程在 api 容器内 spawn，所需依赖（mcp 2.2 + torch CPU +
+      # FlagEmbedding）必须打在 mingjian-platform:latest 镜像里 —— 所以镜像是
+      # install 后 docker commit 出来的，不是 Dockerfile build 出来的。
+      MJ_MCP_RAG_CMD: /usr/local/bin/python|-m|mcp_rag_server
+      MJ_MCP_RAG_CWD: /opt/agentic-rag
+      # 权重路径：子进程继承父进程 env，config.py 里 os.getenv("BGE_M3_PATH") 直接读到
+      BGE_M3_PATH: /opt/models/bge-m3
+      # 4 核机器不能让嵌入线程吃满所有核，否则会同机上的 Yuxi 抢 CPU
+      OMP_NUM_THREADS: "2"
+      # 🔴 RAG 真实模式开关。config.py 里 USE_MOCK_LLM / USE_MOCK_RETRIEVAL 默认都是 true，
+      # 不显式置 false 的话 kb_lookup 走的是**假召回**（证据写死），BGE-M3 根本不会被加载 ——
+      # 那样看起来"跑通了"，其实是自欺欺人。开真实模式才有真证据、真置信度。
+      USE_MOCK_LLM: "false"
+      USE_MOCK_RETRIEVAL: "false"
+      # RAG 子进程自己读 LLM_*（不是 MJ_*），从 .env 透传
+      LLM_API_KEY: ${MJ_LLM_API_KEY:-}
+      LLM_BASE_URL: ${MJ_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_MODEL: ${MJ_LLM_MODEL:-qwen-plus}
+      # P6.0 实测：rag server 单 stdio 会话并发调用 p95 从 1.3s 劣化到 23.9s，强制串行
+      MJ_MCP_SERIALIZE_SERVERS: rag
+      # P7：Agentic RAG 走 HTTP 主通道（rag 服务已在 compose 内，走内网不暴露端口）。
+      # 置空即回滚到 P6 的 MCP stdio 行为，不需要重建镜像。
+      MJ_AGENTIC_RAG_URL: http://rag:8000
+      # 客户端超时必须小于服务端的 120s，否则拿不到服务端 504，分不清"真慢"和"断网"
+      MJ_AGENTIC_RAG_TIMEOUT: "110"
+      MJ_AGENTIC_RAG_CONCURRENCY: "4"
+      # P8：容器里日志必须带级别与模块名，否则排障时一堆输出分不清先后
+      MJ_LOG_LEVEL: INFO
+      # P8：Langfuse 缺席时把 trace 落到本地 JSONL（挂卷后重启不丢）
+      MJ_TRACE_DIR: /app/.data/traces
+      # ⚠️ 生产部署请**同时在 .env 里填这两个**：
+      #   MJ_ENV=production + MJ_CORS_ORIGINS=http://<你的域名或IP>
+      # 只设 MJ_ENV 而不设来源 → CORS 按 fail-closed 拒绝所有跨源请求。
+      # 走 nginx 反代时前端与 API 同源，不受影响；直连 8080 会被拒（这是有意为之）。
+      MJ_ENV: ${MJ_ENV:-}
+      MJ_CORS_ORIGINS: ${MJ_CORS_ORIGINS:-}
+    ports:
+      - "8080:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - filedata:/app/.data/files
+      # P8：本地 trace 兜底的 JSONL 落在这里。不挂卷的话容器一重建排障数据就没了
+      # —— trace 的价值恰恰在于"事后复盘"，丢了等于没记。
+      - tracedata:/app/.data/traces
+      # P5：Agentic RAG 源码 + BGE-M3 权重以只读挂载方式喂进来。
+      # 之所以用宿主机目录而不是打进镜像：权重 2.2G，进镜像后每次 commit 都要重传一遍；
+      # 挂载还能保证"换权重不用重建镜像"。:ro 只读，避免 MCP 子进程意外写脏权重。
+      - /home/ubuntu/agentic-rag:/opt/agentic-rag:ro
+      - /home/ubuntu/models:/opt/models:ro
+    networks: [mjnet]
+    restart: unless-stopped
+
+  # P3：Celery worker。与 api 共用同一个镜像，只是入口命令不同 ——
+  # 不再维护第二份 requirements/Dockerfile，避免出现"两边依赖版本对不上"。
+  worker:
+    build:
+      context: .
+      # 🔴 args 必须与 api 完全一致。两个服务共用 image: mingjian-platform:latest，
+      # 只要 build 配置有一丝不同，compose 就会构建两次并 tag 到同一个名字 ——
+      # 后完成的那个（不带 INSTALL_RAG）会把带 RAG 依赖的镜像顶掉，
+      # 结果是 rag MCP 子进程起不来，且报错发生在运行时而非构建时，极难排查。
+      args:
+        INSTALL_RAG: "1"
+        DEBIAN_MIRROR: http://mirrors.tencentyun.com/debian
+        DEBIAN_SECURITY_MIRROR: http://mirrors.tencentyun.com/debian-security
+    image: mingjian-platform:latest
+    container_name: mingjian-platform-worker
+    command: >
+      celery -A src.tasks.celery_app:app worker
+      --loglevel=info --pool=prefork --concurrency=2 -Q mingjian
+    env_file: .env
+    environment:
+      MJ_DB_URL: postgresql+psycopg://mingjian:${PG_PASSWORD:-mingjian}@postgres:5432/mingjian
+      MJ_REDIS_URL: redis://redis:6379/0
+      MJ_STORAGE_ROOT: /app/.data/files
+      MJ_BUSINESS_DB: /app/.data/business/business.db
+      # 允许用宿主机环境变量临时覆盖，方便做混沌实验
+      # （例：MJ_TASK_VISIBILITY_TIMEOUT=60 docker compose up -d worker，
+      #   用来验证"worker 被 kill 后任务会被重新投递"）
+      MJ_TASK_VISIBILITY_TIMEOUT: ${MJ_TASK_VISIBILITY_TIMEOUT:-900}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - filedata:/app/.data/files
+      - businessdata:/app/.data/business
+    networks: [mjnet]
+    restart: unless-stopped
+    # worker 没有 HTTP 端口，Dockerfile 里那条 curl /health 的 HEALTHCHECK 用在它身上必然失败，
+    # 会永远显示 unhealthy。它的存活**不靠 healthcheck**，靠任务表的 stalled 判定
+    # （running 超过 900s 未更新 = 这个 worker 大概已经不在了）—— 这才是真实信号。
+    healthcheck:
+      disable: true
+
+  # ---------------------------------------------------------------------------
+  # Agentic RAG · 独立服务（P6）
+  #
+  # 它和上面 api 里的 rag MCP 子进程是**两套部署形态，共用同一份源码与权重**：
+  #   - MCP 子进程：明辨平台内部调用，走 stdio，只有 3 个工具（kb_search/lookup/stats）
+  #   - 这个服务：独立 HTTP，跑完整的 10 节点 Agentic RAG 图，POST /agent/query
+  # 之所以能直接用 mingjian-platform 镜像：RAG 运行期需要的 torch CPU、
+  # FlagEmbedding、langgraph、fastapi、uvicorn、anyio、loguru 全在这个镜像里
+  # （见 requirements-rag.txt），再单独打一个镜像纯属浪费 2.6G 磁盘。
+  # ---------------------------------------------------------------------------
+  rag:
+    image: mingjian-platform:latest
+    container_name: mingjian-platform-rag
+    # 🔴 必须先预热再起服务：BGE-M3 是懒加载的，冷启动首次 embed 要 29.7s，
+    # 用户会以为服务挂了。用 exec 让 uvicorn 接管 PID 1，信号/重启行为不变。
+    command: >
+      sh -c "python -c \"from rag.embedding import embed_query; embed_query('预热'); print('[rag-service] BGE-M3 预热完成')\"
+      && exec python -m uvicorn main:app --host 0.0.0.0 --port 8000"
+    working_dir: /opt/agentic-rag
+    environment:
+      # 与 api 里 MCP 子进程完全一致的真实模式开关
+      USE_MOCK_LLM: "false"
+      USE_MOCK_RETRIEVAL: "false"
+      LLM_API_KEY: ${MJ_LLM_API_KEY:-}
+      LLM_BASE_URL: ${MJ_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_MODEL: ${MJ_LLM_MODEL:-qwen-plus}
+      BGE_M3_PATH: /opt/models/bge-m3
+      OMP_NUM_THREADS: "2"
+      # 关闭观测：镜像里没装 langfuse（可选依赖），总开关关掉最省心
+      USE_LANGFUSE: "false"
+    volumes:
+      - /home/ubuntu/agentic-rag:/opt/agentic-rag:ro
+      - /home/ubuntu/models:/opt/models:ro
+    ports:
+      # 只对本机暴露，对外统一走 nginx 的 /rag/
+      - "127.0.0.1:8082:8000"
+    networks: [mjnet]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  filedata:
+  # P8：本地 trace（JSONL）
+  tracedata:
+  redisdata:
+  # P5：业务库（订单/库存/工单）。丢了也不致命 —— 种子确定性，重启会重建同数据
+  businessdata:
+
+networks:
+  mjnet:
+    driver: bridge

@@ -1,0 +1,20 @@
+# Agentic RAG · MCP 子进程依赖
+#
+# 为什么单独一份：rag MCP server 是在 **api 容器内部** spawn 的子进程
+# （MJ_MCP_RAG_CMD=/usr/local/bin/python -m mcp_rag_server, cwd=/opt/agentic-rag），
+# 用的是容器里的 python —— 所以这些依赖必须打进同一个 mingjian-platform 镜像，
+# 不能指望宿主机或挂载目录里有一套 venv。
+#
+# 🔴 torch 不写在这里：PyPI 上的 linux torch 会连带 nvidia-* CUDA 全家桶（数 GB），
+# 这台 4C/30G 的机器根本用不上 GPU。CPU 版由 Dockerfile 单独一条
+#   pip install --index-url https://mirrors.aliyun.com/pytorch-wheels/cpu/ torch==2.9.1+cpu
+# 先装好，这里再装 FlagEmbedding 时 torch 已满足，pip 不会再拉一遍。
+#
+# 只列运行期真正 import 到的（对 mcp_rag_server -> graph -> nodes -> rag 链路核对过）：
+#   FlagEmbedding  rag/embedding.py 的 BGEM3FlagModel（BGE-M3 稠密+稀疏）
+#   loguru         RAG 内部日志
+#   anyio          main.py 的并发限流（保留以免本地起服务时缺依赖）
+# langgraph / langchain / pydantic / python-dotenv / mcp 已在主 requirements.txt 里。
+FlagEmbedding>=1.3
+loguru>=0.7
+anyio>=4.4

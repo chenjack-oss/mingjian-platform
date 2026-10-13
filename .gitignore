@@ -1,0 +1,29 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# 环境与部署配置（含真实 Key / 令牌 / 密码，一律不入库）
+.env
+!.env.example
+.env.*
+!.env.example
+server.env
+*.local.env
+
+# 本地数据
+.data/
+*.db
+*.sqlite3
+
+# 日志与验收产物
+*.log
+build*.log
+.playwright-cli/
+
+.idea/
+.vscode/
+.DS_Store
+
+# 验收脚本产生的临时快照
+*.yaml

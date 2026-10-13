@@ -1,0 +1,55 @@
+# 明辨平台 · 依赖
+# 说明：这里用 >= 而不是 ==。
+# 旧项目踩过坑：requirements 里写死 wcmatch==10.1，升级 deepagents 时与 wcmatch>=11
+# 直接冲突，pip 报 ResolutionImpossible。锁死版本只在你完全掌控传递依赖时才安全，
+# 而我们依赖 deepagents / langgraph 这类快速迭代的库，所以这里用下界 + 上界意识。
+
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+
+# 数据层：SQLAlchemy Core 吸收 Postgres / SQLite 方言差异
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+psycopg-pool>=3.2
+
+# 模型调用（OpenAI 兼容端点）
+httpx>=0.27
+
+# 配置
+python-dotenv>=1.0
+
+# 文件上传（FastAPI 解析 multipart 必装，缺了会在导入阶段直接 RuntimeError）
+python-multipart>=0.0.9
+
+# LangGraph：图编排 + Postgres 检查点（P1 装配，P2 真正跑图）
+langgraph==1.2.14
+langgraph-checkpoint-postgres==3.1.2
+
+# P2 执行核：deepagents 单智能体 + skills；OpenAI 兼容模型后端
+# 🔴 锁死版本（2026-10-14）：deepagents 0.7.24 引入 regression ——
+#   get_provider_profile(spec) 里 spec.partition(":") 在 spec 被传成 ChatOpenAI 对象时
+#   报 AttributeError('ChatOpenAI' object has no attribute 'partition')，工具调用路径 500。
+#   0.7.23 + langchain-openai 1.7.0 是全绿验证过的组合，锁死防再漂移。
+deepagents==0.7.23
+langchain==1.4.4
+langchain-openai==1.7.0
+
+# 联网搜索工具（豆包，同步阻塞调用，不用 httpx）
+requests>=2.32
+
+# P3：异步任务（Celery）+ Redis（语义缓存 / 令牌桶限流 / broker，一个组件三用）
+celery[redis]>=5.4
+redis>=5.0
+
+# P5：MCP 业务系统集成。
+# 注意是 mcp 2.x：2.0 起 FastMCP 改名 MCPServer，且所有字段改成 snake_case
+# （isError→is_error、structuredContent→structured_content、inputSchema→input_schema）。
+# 1.x 的代码在 2.x 上会 ModuleNotFoundError / AttributeError，面试问到要答得出这点。
+mcp>=2.0,<3
+
+# P3：可观测（Langfuse trace）是**可选依赖**，放在 requirements-observe.txt 里。
+# 为什么不放这里：langfuse 会带进 OpenTelemetry 全家桶，在只走内网镜像的机器上
+# 能把构建从 2 分钟拖到 20 分钟以上（实测：卡在 pip 下载 19 分钟无进展）。
+# 观测不该成为主链路的构建依赖 —— 不装它平台照常跑（src/observe 会降级为 no-op）。
+# 需要时：docker build --build-arg INSTALL_OBSERVE=1，或在容器里手工 pip install。
